@@ -33,21 +33,24 @@ class UpdateNotifications {
 
     public function checkForUpdates(): void {
         $url = 'https://poggit.pmmp.io/releases.min.json?name=' . urlencode($this->pluginName);
-        $response = file_get_contents($url);
-        if ($response === false) {
-            $this->plugin->getLogger()->warning("Failed to check for updates.");
-            return;
-        }
+        
+        try {
+            $response = file_get_contents($url);
+            if ($response === false) {
+                throw new \Exception("Failed to fetch update data.");
+            }
 
-        $data = json_decode($response, true);
-        if ($data === null || !isset($data[0]['version'])) {
-            $this->plugin->getLogger()->warning("Failed to decode update data.");
-            return;
-        }
+            $data = json_decode($response, true);
+            if ($data === null || !isset($data[0]['version'])) {
+                throw new \Exception("Failed to decode update data.");
+            }
 
-        $latestVersion = $data[0]['version'];
-        if (version_compare($this->currentVersion, $latestVersion, '<')) {
-            $this->notifyAdmins($latestVersion);
+            $latestVersion = $data[0]['version'];
+            if (version_compare($this->currentVersion, $latestVersion, '<')) {
+                $this->notifyAdmins($latestVersion);
+            }
+        } catch (\Exception $e) {
+            $this->plugin->getLogger()->warning("Update check failed: " . $e->getMessage());
         }
     }
 
